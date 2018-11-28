@@ -70,13 +70,8 @@ class XMB:
         
     def read(self, f):
         self.header = XMB.XMBHeader(f)
-        for x in range(0, self.header.numProperties):
-            f.seek(self.header.pStrOffsets + x * 4)
-            off = struct.unpack('<I', f.read(4))[0]
-            f.seek(self.header.pStrTable1 + off)
-            self.properties.append(readStringNT(f))
-            
-        # read node #
+        
+        # read nodes #
         for x in range(0, self.header.numEntries):
             f.seek(self.header.pEntriesTable + x * 0x10)
             entry = XMB.XMBEntry(f)
@@ -94,6 +89,7 @@ class XMB:
                 entry.properties[prop] = readStringNT(f)
             self.entries.append(entry)
             
+        # order nodes in a tree #
         for x in range(0, len(self.entries)):
             entry = self.entries[x]
             if entry.parentIndex != -1:
