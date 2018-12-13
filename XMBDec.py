@@ -33,7 +33,6 @@ class XMB:
             f.seek(0)
             self.magic = f.read(4).decode('ascii')
             self.numNodes = struct.unpack(self.endian+'I', f.read(4))[0]
-            print(hex(self.numNodes))
             self.numValues = struct.unpack(self.endian+'I', f.read(4))[0]
             self.numProperties = struct.unpack(self.endian+'I', f.read(4))[0]
             self.numMappedNodes = struct.unpack(self.endian+'I', f.read(4))[0]
@@ -164,7 +163,6 @@ parser.add_argument("-o", help="Sets output File", metavar="OUTPUT", nargs="?", 
 args = parser.parse_args()
 
 with open(args.file, 'rb') as f:
-    print(args.bigendian)
     xmb = XMB(f, args.bigendian)
     if args.showinfo:
         xmb.print_info()
