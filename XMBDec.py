@@ -24,40 +24,47 @@ def readStringNT(f):
 class XMB:
     class XMBHeader:
         def __init__(self, file, bigendian=False):
-            self.read(file)
+            self.endian = '<'
+            if bigendian:
+                self.endian = '>'
+            self.read(file, bigendian)
         
         def read(self, f, bigendian=False):
             f.seek(0)
             self.magic = f.read(4).decode('ascii')
-            self.numnodes = struct.unpack('<I', f.read(4))[0]
-            self.numValues = struct.unpack('<I', f.read(4))[0]
-            self.numProperties = struct.unpack('<I', f.read(4))[0]
-            self.numMappedNodes = struct.unpack('<I', f.read(4))[0]
+            self.numNodes = struct.unpack(self.endian+'I', f.read(4))[0]
+            print(hex(self.numNodes))
+            self.numValues = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.numProperties = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.numMappedNodes = struct.unpack(self.endian+'I', f.read(4))[0]
             
-            self.pStrOffsets = struct.unpack('<I', f.read(4))[0]
-            self.pnodesTable = struct.unpack('<I', f.read(4))[0]
-            self.pPropertiesTable = struct.unpack('<I', f.read(4))[0]
-            self.pNodeMap = struct.unpack('<I', f.read(4))[0]
-            self.pStrNames = struct.unpack('<I', f.read(4))[0]
-            self.pStrValues = struct.unpack('<I', f.read(4))[0]
+            self.pStrOffsets = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.pNodesTable = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.pPropertiesTable = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.pNodeMap = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.pStrNames = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.pStrValues = struct.unpack(self.endian+'I', f.read(4))[0]
             
     class XMBEntry:
         def __init__(self, file, bigendian=False):
+            self.endian = '<'
+            if bigendian:
+                self.endian = '>'
             self.properties = {}
             self.children = []
             self.parent = None
             self.name = ''
             self.index = 0
-            self.read(file)
+            self.read(file, bigendian)
             
         def read(self, f, bigendian=False):
-            self.nameOffset = struct.unpack('<I', f.read(4))[0]
-            self.numProps = struct.unpack('<h', f.read(2))[0]
-            self.numChildren = struct.unpack('<h', f.read(2))[0]
-            self.firstProp = struct.unpack('<h', f.read(2))[0]
-            self.unk1 = struct.unpack('<h', f.read(2))[0]
-            self.parentIndex = struct.unpack('<h', f.read(2))[0]
-            self.unk2 = struct.unpack('<h', f.read(2))[0]
+            self.nameOffset = struct.unpack(self.endian+'I', f.read(4))[0]
+            self.numProps = struct.unpack(self.endian+'h', f.read(2))[0]
+            self.numChildren = struct.unpack(self.endian+'h', f.read(2))[0]
+            self.firstProp = struct.unpack(self.endian+'h', f.read(2))[0]
+            self.unk1 = struct.unpack(self.endian+'h', f.read(2))[0]
+            self.parentIndex = struct.unpack(self.endian+'h', f.read(2))[0]
+            self.unk2 = struct.unpack(self.endian+'h', f.read(2))[0]
 
         def buildXML(self, parent):
             if self.parentIndex == -1 or parent == None:
@@ -76,19 +83,22 @@ class XMB:
                                                           self.numProps, self.numChildren, self.firstProp, self.unk1, self.parentIndex, self.unk2))
             
     def __init__(self, file, bigendian=False):
+        self.endian = '<'
+        if bigendian:
+            self.endian = '>'
         self.header = None
         self.nodes = []
         self.roots = []
         self.nodeDict = {}
-        self.read(file)
+        self.read(file, bigendian)
         
     def read(self, f, bigendian=False):
-        self.header = XMB.XMBHeader(f)
+        self.header = XMB.XMBHeader(f, bigendian)
         
         # read nodes #
-        for x in range(0, self.header.numnodes):
-            f.seek(self.header.pnodesTable + x * 0x10)
-            entry = XMB.XMBEntry(f)
+        for x in range(0, self.header.numNodes):
+            f.seek(self.header.pNodesTable + x * 0x10)
+            entry = XMB.XMBEntry(f, bigendian)
             f.seek(self.header.pStrNames + entry.nameOffset)         
             entry.name = readStringNT(f)
             entry.index = x
@@ -96,8 +106,8 @@ class XMB:
             # setup node properties #
             for y in range(0, entry.numProps):
                 f.seek(self.header.pPropertiesTable + (entry.firstProp + y) * 8)
-                strOff1 = struct.unpack('<I', f.read(4))[0]
-                strOff2 = struct.unpack('<I', f.read(4))[0]
+                strOff1 = struct.unpack(self.endian+'I', f.read(4))[0]
+                strOff2 = struct.unpack(self.endian+'I', f.read(4))[0]
                 f.seek(self.header.pStrNames + strOff1)
                 prop = readStringNT(f)
                 f.seek(self.header.pStrValues + strOff2)
@@ -106,8 +116,8 @@ class XMB:
             
         for x in range(0, self.header.numMappedNodes):
             f.seek(self.header.pNodeMap + x * 8)
-            strOff1 = struct.unpack('<I', f.read(4))[0]
-            nodeIndex = struct.unpack('<I', f.read(4))[0]
+            strOff1 = struct.unpack(self.endian+'I', f.read(4))[0]
+            nodeIndex = struct.unpack(self.endian+'I', f.read(4))[0]
             f.seek(self.header.pStrValues + strOff1)
             nodeID = readStringNT(f)
             self.nodeDict[nodeID] = nodeIndex
@@ -125,7 +135,7 @@ class XMB:
     def print_info(self):
         print('Values:       {}'.format(hex(self.header.numValues)))
         print('Props:        {}'.format(hex(self.header.numProperties)))
-        print('nodes:        {}'.format(hex(self.header.numnodes)))
+        print('nodes:        {}'.format(hex(self.header.numNodes)))
         print('Mapped Nodes: {}'.format(hex(self.header.numMappedNodes)))
         print('Node Map:     {}'.format(hex(self.header.pNodeMap)))
         print('PropTable:    {}'.format(hex(self.header.pStrNames)))
@@ -154,6 +164,7 @@ parser.add_argument("-o", help="Sets output File", metavar="OUTPUT", nargs="?", 
 args = parser.parse_args()
 
 with open(args.file, 'rb') as f:
+    print(args.bigendian)
     xmb = XMB(f, args.bigendian)
     if args.showinfo:
         xmb.print_info()
