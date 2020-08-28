@@ -292,7 +292,7 @@ args = parser.parse_args()
 
 
 if args.file.endswith('.xmb'):
-    xmbFile = XMB.fromXmb(args.file)
+    xmbFile = XMB.fromXmb(args.file, args.bigendian)
     if args.showinfo:
         xmbFile.print_info()
         exit()
